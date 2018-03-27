@@ -17,7 +17,6 @@ class Localization(smach.State):
         smach.State.__init__(self, outcomes=['Localization','Exploration'])
 
     def execute(self, userdata):
-        print("yes")
         return 'Localization'
         #do stuff here
 
@@ -26,7 +25,6 @@ class Exploration(smach.State):
         smach.State.__init__(self, outcomes=['Localization','Exploration','Found'])
 
     def execute(self, userdata):
-        print("yes")
         #do stuff here
         return 'Localization'
 class Found(smach.State):
@@ -34,7 +32,6 @@ class Found(smach.State):
         smach.State.__init__(self, outcomes=['Localization','Exploration','Found','Sound'])
 
     def execute(self, userdata):
-        print("yes")
         #do stuff here
         return 'Localization'
 
@@ -43,7 +40,6 @@ class Sound(smach.State):
         smach.State.__init__(self, outcomes=['Exploration','Sound'])
 
     def execute(self, userdata):
-        print("yes")
         #do stuff here
         return 'Localization'
 
