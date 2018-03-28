@@ -25,9 +25,26 @@ class Localization(smach.State):
     def execute(self, userdata):
         #spread particles randomly
         #rosservice call /global_localization "{}"
+        rospy.wait_for_service('global_localization')
+        try:
+            global_localization = rospy.ServiceProxy('global_localization',GlobalLocalization)
+        except:
+            print("Global Loc Failed")
         #rotate 3 times
+        twist.angular.z = 30
+        cmd_vel_pub.publish(twist)
+        state_change_time = 30
+        rospy.Duration(30)
+        while rospy.Time.now() < state_change_time:
+            pass
         #if localization == done:
         #clear cost map
+        rospy.wait_for_service('clear_costmap')
+        try:
+            clear_costmap = rospy.ServiceProxy('clear_costmap',ClearCostmap)
+        except:
+            print("Costmap service failed!")
+        
         return 'Exploration'
         #else:
         #this else statement might get stuck in a loop?
@@ -52,11 +69,18 @@ class Exploration(smach.State):
         # 0 = hasn't been to a waypoint
         #if waypoint = 0, find closest point
         #else find closest point not including waypoint you've already been to 
-
-        for pose in self.waypoints:
-            curr_pose = pose
-            goal = self.goal_pose(pose)
-            self.client.send_goal(goal)
+        if self.waycounter == 0:
+            self.waycounter == 1
+            pose = self.waypoints[0]
+        else:
+            if waycounter <= 4:
+                waycounter += 1
+            else:
+                waycounter = 1
+            pose = self.waypoints[waycounter-1]
+        curr_pose = pose
+        goal = self.goal_pose(pose)
+        self.client.send_goal(goal)
         #if matchtemplate worked, stop and change state to found
         #elseif lost , return localizationtion
         return 'Localization'
@@ -75,7 +99,7 @@ class Exploration(smach.State):
         return goal_pose
 
         
-    def matchtemplate(self):
+    def matchtemplate(self,image):
         '''
         ap = argparse.ArgumentParser()
         ap.add_argument("-t", "--template", required=True, help="Path to template image")
@@ -85,8 +109,9 @@ class Exploration(smach.State):
 	help="Flag indicating whether or not to visualize each iteration")
         args = vars(ap.parse_args())
         '''
+        #not constantly resizing the image here might help
         # load the image image, convert it to grayscale, and detect edges
-        template = cv2.imread(args["template"])
+        template = cv2.imread(image)
         template = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
         template = cv2.Canny(template, 50, 200)
         (tH, tW) = template.shape[:2]
