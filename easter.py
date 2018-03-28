@@ -96,6 +96,7 @@ class Exploration(smach.State):
         if found == True:
             return 'Found'
 
+
     def goal_pose(self,pose):
         goal_pose = MoveBaseGoal()
         goal_pose.target_pose.header.frame_id = 'map'
@@ -148,7 +149,8 @@ class Exploration(smach.State):
                 edged = cv2.Canny(resized, 50, 200)
                 result = cv2.matchTemplate(edged, template, cv2.TM_CCOEFF)
                 (_, maxVal, _, maxLoc) = cv2.minMaxLoc(result)
-                if maxVal >= 80:
+                #change if necessary
+                if maxVal >= .10:
                     # check to see if the iteration should be visualized
                     # draw a bounding box around the detected region
                     clone = np.dstack([edged, edged, edged])
