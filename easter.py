@@ -12,6 +12,13 @@ from sensor_msgs.msg import Joy
 from sound_play.msg import SoundRequest
 from sound_play.libsoundplay import SoundClient
 
+waypoints = [
+    [(-5.7, -3.1, 0.0), (0.0, 0.0, .99, 0.07)],
+    [(-6.2, -0.89, 0.0), (0.0, 0.0, -0.78, 0.64)],
+    [(-.46, -.09, 0.0), (0.0, 0.0, -.06, 1.0)],
+    [(0.03, 2.05, 0.0), (0.0, 0.0, .7, 0.7)]
+]
+
 class Localization(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['Localization','Exploration'])
@@ -26,6 +33,10 @@ class Exploration(smach.State):
 
     def execute(self, userdata):
         #do stuff here
+        for pose in waypoints:
+            curr_pose = pose
+            goal = goal_pose(pose)
+            client.send_goal(goal)
         return 'Localization'
 class Found(smach.State):
     def __init__(self):
@@ -62,3 +73,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    client.wait_for_result()
