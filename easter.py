@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import actionlib
 import roslib
 import rospy
 import smach
@@ -30,12 +31,13 @@ class Localization(smach.State):
         return 'Exploration'
         #else:
         #this else statement might get stuck in a loop?
-        return 'Localization'
+        #return 'Localization'
 
 class Exploration(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['Localization','Exploration','Found'])
         #need to edit these waypoints
+        self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.waypoints = [
             [(-5.7, -3.1, 0.0), (0.0, 0.0, .99, 0.07)],
             [(-6.2, -0.89, 0.0), (0.0, 0.0, -0.78, 0.64)],
@@ -53,14 +55,14 @@ class Exploration(smach.State):
 
         for pose in self.waypoints:
             curr_pose = pose
-            goal = goal_pose(pose)
-            client.send_goal(goal)
+            goal = self.goal_pose(pose)
+            self.client.send_goal(goal)
         #if matchtemplate worked, stop and change state to found
         #elseif lost , return localizationtion
         return 'Localization'
         #else, change waypoint counter, and return exploration
     
-    def goal_pose(pose):
+    def goal_pose(self,pose):
         goal_pose = MoveBaseGoal()
         goal_pose.target_pose.header.frame_id = 'map'
         goal_pose.target_pose.pose.position.x = pose[0][0]
