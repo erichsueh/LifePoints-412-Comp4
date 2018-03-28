@@ -34,7 +34,7 @@ class Localization(smach.State):
         except:
             print("Global Loc Failed")
         #rotate 3 times
-        twist.angular.z = 30
+        twist.angular.z = 1
         cmd_vel_pub.publish(twist)
         state_change_time = 30
         rospy.Duration(30)
@@ -65,6 +65,7 @@ class Exploration(smach.State):
             [(0.03, 2.05, 0.0), (0.0, 0.0, .7, 0.7)]
         ]
         self.waycounter = 0
+        #self.cam_info_sub = rospy.Subscriber('/cv_camera/camera_info', CameraInfo, self.info_cb)
 
     def execute(self, userdata):
         #do stuff here
@@ -72,6 +73,7 @@ class Exploration(smach.State):
         # 0 = hasn't been to a waypoint
         #if waypoint = 0, find closest point
         #else find closest point not including waypoint you've already been to 
+        self.img_sub = rospy.Subscriber('/cv_camera/image_raw', Image, self.img_cb)
         if self.waycounter == 0:
             self.waycounter == 1
             pose = self.waypoints[0]
@@ -89,6 +91,12 @@ class Exploration(smach.State):
         return 'Localization'
         #else, change waypoint counter, and return exploration
     
+    def img_cb(self,msg):
+        found = matchtemplate(msg)
+        if found == True:
+            return 'Found'
+    
+
     def goal_pose(self,pose):
         goal_pose = MoveBaseGoal()
         goal_pose.target_pose.header.frame_id = 'map'
@@ -148,7 +156,9 @@ class Exploration(smach.State):
                     cv2.rectangle(clone, (maxLoc[0], maxLoc[1]),(maxLoc[0] + tW, maxLoc[1] + tH), (0, 0, 255), 2)
                     cv2.imshow("Visualize", clone)
                     cv2.waitKey(0)
-
+                    return (True)
+        return(False)
+        
 class Found(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['Localization','Exploration','Found','Sound'])
