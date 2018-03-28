@@ -11,11 +11,11 @@ import math
 from sensor_msgs.msg import Joy
 from sound_play.msg import SoundRequest
 from sound_play.libsoundplay import SoundClient
+from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import argparse
 import imutils
 import glob
 import cv2
-
 
 class Localization(smach.State):
     def __init__(self):
@@ -23,13 +23,14 @@ class Localization(smach.State):
 
     def execute(self, userdata):
         #spread particles randomly
+        #rosservice call /global_localization "{}"
         #rotate 3 times
         #if localization == done:
+        #clear cost map
         return 'Exploration'
         #else:
         #this else statement might get stuck in a loop?
         return 'Localization'
-        #do stuff here
 
 class Exploration(smach.State):
     def __init__(self):
@@ -42,6 +43,7 @@ class Exploration(smach.State):
             [(0.03, 2.05, 0.0), (0.0, 0.0, .7, 0.7)]
         ]
         self.waycounter = 0
+
     def execute(self, userdata):
         #do stuff here
         #have a waypoint counter
@@ -57,7 +59,20 @@ class Exploration(smach.State):
         #elseif lost , return localizationtion
         return 'Localization'
         #else, change waypoint counter, and return exploration
+    
+    def goal_pose(pose):
+        goal_pose = MoveBaseGoal()
+        goal_pose.target_pose.header.frame_id = 'map'
+        goal_pose.target_pose.pose.position.x = pose[0][0]
+        goal_pose.target_pose.pose.position.y = pose[0][1]
+        goal_pose.target_pose.pose.position.z = pose[0][2]
+        goal_pose.target_pose.pose.orientation.x = pose[1][0]
+        goal_pose.target_pose.pose.orientation.y = pose[1][1]
+        goal_pose.target_pose.pose.orientation.z = pose[1][2]
+        goal_pose.target_pose.pose.orientation.w = pose[1][3]
+        return goal_pose
 
+        
     def matchtemplate(self):
         '''
         ap = argparse.ArgumentParser()
