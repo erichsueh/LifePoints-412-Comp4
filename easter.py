@@ -95,7 +95,6 @@ class Exploration(smach.State):
         found = matchtemplate(msg)
         if found == True:
             return 'Found'
-    
 
     def goal_pose(self,pose):
         goal_pose = MoveBaseGoal()
@@ -149,8 +148,8 @@ class Exploration(smach.State):
                 edged = cv2.Canny(resized, 50, 200)
                 result = cv2.matchTemplate(edged, template, cv2.TM_CCOEFF)
                 (_, maxVal, _, maxLoc) = cv2.minMaxLoc(result)
-                # check to see if the iteration should be visualized
-                if args.get("visualize", False):
+                if maxVal >= 80:
+                    # check to see if the iteration should be visualized
                     # draw a bounding box around the detected region
                     clone = np.dstack([edged, edged, edged])
                     cv2.rectangle(clone, (maxLoc[0], maxLoc[1]),(maxLoc[0] + tW, maxLoc[1] + tH), (0, 0, 255), 2)
