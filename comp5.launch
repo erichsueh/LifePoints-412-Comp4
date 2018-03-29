@@ -1,0 +1,11 @@
+<launch>
+
+<include file = "$(find turtlebot_bringup)/launch/minimal.launch"/>
+
+<include file = "$(find turtlebot_bringup)/launch/3dsensor.launch"/>
+
+<include file = "$(find turtlebot_teleop)/launch/logitech.launch"/>
+
+<node name = "Egghunt" pkg = "Comp5-4/LifePoints-412-Comp4" type = "easter.py" respawn = "true" />
+
+</launch>

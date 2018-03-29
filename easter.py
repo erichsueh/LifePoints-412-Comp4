@@ -67,6 +67,19 @@ class Exploration(smach.State):
         self.waycounter = 0
         #self.cam_info_sub = rospy.Subscriber('/cv_camera/camera_info', CameraInfo, self.info_cb)
 
+    def findClosestWaypoint(self):
+        #get current pos in map
+        minValue = 99
+        wayIndex = None
+        for i in range(len(self.waypoints)):
+            distAway = math.sqrt(math.pow(self.waypoints[i][0][0] - currentpos.x, 2) + math.pow(self.waypoints[i][0][1] - currentpos.y, 2))
+            if distAway < minValue:
+                minValue = distAway
+                wayIndex = i
+            
+        return wayIndex
+
+
     def execute(self, userdata):
         #do stuff here
         #have a waypoint counter
@@ -305,16 +318,8 @@ class Sound(smach.State):
 
 
     def returnToPath(self):
-        print "heeelloooo???"
-
-        print self.initOrientation + math.pi/2
-        print self.orientation
 
         while (abs((self.initOrientation + (math.pi/2) - 0.2) - self.orientation) > 0.1):
-            print "goal"
-            print self.initOrientation + math.pi/2
-            print "current"
-            print self.orientation
             twist = Twist()
             twist.angular.z = 0.5
             self.cmd_vel_pub.publish(twist)
@@ -327,17 +332,13 @@ class Sound(smach.State):
         self.im_sub = rospy.Subscriber('camera/rgb/image_raw', Image, self.im_callback)
         self.odom_sub = rospy.Subscriber('odom', Odometry, self.odom_callback)
 
-        print "start execute"
         while(self.orientation == None):
             continue
 
-        print "found orientation"
         self.initOrientation = self.orientation
         
-        print "checking marker"
         marker = self.checkMarker()
 
-        print "determined marker"
         if(marker == 1):
             print "marker 1"
             #self.soundhandle.playWave("firstsound")
@@ -345,7 +346,6 @@ class Sound(smach.State):
             print "marker 2"
             #self.soundhandle.playWave("secondsound")
 
-        print "hello?"
         self.returnToPath()
 
         return 'Exploration'
