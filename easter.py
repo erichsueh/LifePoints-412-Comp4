@@ -25,21 +25,23 @@ import cv2
 class Localization(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['Localization','Exploration'])
-
+        self.cmd_vel_pub = rospy.Publisher('cmd_vel_mux/input/teleop', Twist, queue_size=1)
     def execute(self, userdata):
         #spread particles randomly
         #rosservice call /global_localization "{}"
         rospy.wait_for_service('global_localization')
         try:
-            global_localization = rospy.ServiceProxy('global_localization',GlobalLocalization)
+            global_localization = rospy.ServiceProxy('global_localization',Empty)
+            global_localization()
         except:
-            print("Global Loc Failed")
+            print("Spread Particles Failed")
         #rotate 3 times
+        twist = Twist()
         twist.angular.z = 1
-        cmd_vel_pub.publish(twist)
+        self.cmd_vel_pub.publish(twist)
         state_change_time = 30
         rospy.Duration(30)
-        while rospy.Time.now() < state_change_time:
+        while rospy.Time.now().to_sec() < state_change_time:
             pass
         #if localization == done:
         #clear cost map
@@ -128,6 +130,7 @@ class Exploration(smach.State):
     
     def img_cb(self,msg):
         found = self.matchtemplate(msg)
+        os.system("rostopic pub /move_base/cancel actionlib_msgs/GoalID -- {}")
         if found == True:
             return 'Found'
 
