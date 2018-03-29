@@ -57,6 +57,7 @@ class Exploration(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['Localization','Exploration','Found'])
         #need to edit these waypoints
+        self.found = False
         self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.waypoints = [
             [(-5.7, -3.1, 0.0), (0.0, 0.0, .99, 0.07)],
@@ -79,6 +80,16 @@ class Exploration(smach.State):
             
         return wayIndex
 
+    def closeToWaypoint(self, goal):
+        #get current pos in map
+        distAway = math.sqrt(math.pow(goal[0] - currentpos.x, 2) + math.pow(goal[1] - currentpos.y, 2))
+        angleAway = goal[5] - currentpos.theta
+
+        if(distAway < 0.1 and angleAway < 0.1):
+            return True
+        else:
+            return False
+
 
     def execute(self, userdata):
         #do stuff here
@@ -99,13 +110,22 @@ class Exploration(smach.State):
         curr_pose = pose
         goal = self.goal_pose(pose)
         self.client.send_goal(goal)
+
+        while(not self.found):
+            if(self.closeToWaypoint(goal)):
+                return "Exploration"
+            if(self.lostPosition):
+                return "Localization"
+
+        return "Found"
+
         #if matchtemplate worked, stop and change state to found
         #elseif lost , return localizationtion
         return 'Localization'
         #else, change waypoint counter, and return exploration
     
     def img_cb(self,msg):
-        found = matchtemplate(msg)
+        found = self.matchtemplate(msg)
         if found == True:
             return 'Found'
 
