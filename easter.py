@@ -27,6 +27,12 @@ class Localization(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['Localization','Exploration'])
         self.cmd_vel_pub = rospy.Publisher('cmd_vel_mux/input/teleop', Twist, queue_size=1)
+        #self.initOrientation
+        self.orientation = 0
+        self.initOrientation = 0
+        self.range_ahead = 99
+        self.odom_sub = rospy.Subscriber('odom', Odometry, self.odom_callback)
+
     def execute(self, userdata):
         #spread particles randomly
         #rosservice call /global_localization "{}"
@@ -34,15 +40,17 @@ class Localization(smach.State):
         global_localization = rospy.ServiceProxy('global_localization',Empty)
         global_localization()
         #rotate 3 times
+        self.moveTo()
+        '''
         twist = Twist()
         twist.angular.z = 1
         self.cmd_vel_pub.publish(twist)
-        state_change_time = 30
-        rospy.Duration(30)
+        state_change_time = 10
+        rospy.Duration(10)
         
         while rospy.Time.now().to_sec() < state_change_time:
             pass
-        
+        '''
         #if localization == done:
         #clear cost map
         '''
@@ -55,6 +63,18 @@ class Localization(smach.State):
         #else:
         #this else statement might get stuck in a loop?
         #return 'Localization'
+
+    def moveTo(self):
+
+        while (abs((self.initOrientation - (math.pi/4) + 0.1) - self.orientation) > 0.1):
+            print(abs((self.initOrientation - (math.pi) + 0.1) - self.orientation))
+            twist = Twist()
+            twist.angular.z = 0.5
+            self.cmd_vel_pub.publish(twist)
+            
+    def odom_callback(self, msg):
+
+        self.orientation = msg.pose.pose.orientation.z
 
 class Exploration(smach.State):
     def __init__(self):
@@ -145,7 +165,8 @@ class Exploration(smach.State):
             #if(self.lostPosition):
             #    return "Localization"
         print("ive foudn it")
-        os.system("rostopic pub /move_base/cancel actionlib_msgs/GoalID -- {}")
+        self.img_sub.unregister()
+        #os.system("rostopic pub /move_base/cancel actionlib_msgs/GoalID -- {}")
         return "Found"
 
         #if matchtemplate worked, stop and change state to found
@@ -254,7 +275,7 @@ class Found(smach.State):
 
     def execute(self, userdata):
 
-        return 'Sound'
+        #return 'Sound'
 
         self.orientation = 0
         self.initOrientation = 0
@@ -267,8 +288,14 @@ class Found(smach.State):
             continue
 
         self.initOrientation = orientation
+        
+        test = self.moveTo()
+        self.im_sub.unregister()
+        #self.scan_sub.unregister()
+        self.odom_sub.unregister()
+        return test
 
-        return self.moveTo()
+        
 
 class Sound(smach.State):
     def __init__(self):
@@ -389,6 +416,8 @@ class Sound(smach.State):
             print "marker 2"
             self.soundhandle.playWave("sound2.ogg")
 
+        #self.im_sub.unregister()
+        #self.img_odom.unregister()
         self.returnToPath()
 
         return 'Exploration'
@@ -408,6 +437,7 @@ def main():
     sis.start()
     
     outcome = sm.execute()
+    rospy.spin()
     sis.stop()
 
 if __name__ == '__main__':
