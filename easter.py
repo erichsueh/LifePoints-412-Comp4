@@ -21,7 +21,7 @@ import argparse
 import imutils
 import glob
 import cv2
-from std_msgs.msg import Empty
+from std_srvs.srv import Empty
 
 class Localization(smach.State):
     def __init__(self):
@@ -31,8 +31,7 @@ class Localization(smach.State):
         #spread particles randomly
         #rosservice call /global_localization "{}"
         rospy.wait_for_service('global_localization')
-        msg = Empty([])
-        global_localization = rospy.ServiceProxy('global_localization',msg)
+        global_localization = rospy.ServiceProxy('global_localization',Empty)
         global_localization()
         #rotate 3 times
         twist = Twist()
