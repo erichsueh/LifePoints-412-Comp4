@@ -39,16 +39,18 @@ class Localization(smach.State):
         self.cmd_vel_pub.publish(twist)
         state_change_time = 30
         rospy.Duration(30)
+        
         while rospy.Time.now().to_sec() < state_change_time:
             pass
+        
         #if localization == done:
         #clear cost map
-        rospy.wait_for_service('clear_costmap')
-        try:
-            clear_costmap = rospy.ServiceProxy('clear_costmap',ClearCostmap)
-        except:
-            print("Costmap service failed!")
-        
+        '''
+        rospy.wait_for_service('move_base/clear_costmap')
+        print('ejogfaij')
+        clear_costmap = rospy.ServiceProxy('clear_costmap',Empty)
+        clear_costmap()
+        '''
         return 'Exploration'
         #else:
         #this else statement might get stuck in a loop?
@@ -59,6 +61,7 @@ class Exploration(smach.State):
         smach.State.__init__(self, outcomes=['Localization','Exploration','Found'])
         #need to edit these waypoints
         self.found = False
+        self.currentpos = [0,0,0]
         self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.waypoints = [
             [(-5.7, -3.1, 0.0), (0.0, 0.0, .99, 0.07)],
@@ -105,8 +108,8 @@ class Exploration(smach.State):
 
     def closeToWaypoint(self, goal):
         #get current pos in map
-        distAway = math.sqrt(math.pow(goal[0] - currentpos.x, 2) + math.pow(goal[1] - currentpos.y, 2))
-        angleAway = goal[5] - currentpos.theta
+        distAway = math.sqrt(math.pow(goal.target_pose.pose.position.x - self.currentpos[0], 2) + math.pow(goal.target_pose.pose.position.y - self.currentpos[1], 2))
+        angleAway = goal.target_pose.pose.orientation.z - self.currentpos[2]
 
         if(distAway < 0.1 and angleAway < 0.1):
             return True
@@ -115,6 +118,7 @@ class Exploration(smach.State):
 
 
     def execute(self, userdata):
+        self.found = False
         #do stuff here
         #have a waypoint counter
         # 0 = hasn't been to a waypoint
@@ -133,13 +137,14 @@ class Exploration(smach.State):
         curr_pose = pose
         goal = self.goal_pose(pose)
         self.client.send_goal(goal)
-
-        while(not self.found):
+        
+        while(self.found != None):
             if(self.closeToWaypoint(goal)):
                 return "Exploration"
+            print(self.found)
             #if(self.lostPosition):
             #    return "Localization"
-
+        print("ive foudn it")
         os.system("rostopic pub /move_base/cancel actionlib_msgs/GoalID -- {}")
         return "Found"
 
@@ -171,7 +176,7 @@ class Exploration(smach.State):
         
         found1 = None
         for scale in space:
-            print scale
+            #print "Webcam"
             
             resized = imutils.resize(currImage, width = int((currImage.shape[1]) * scale))
 		    #r1 = currImage.shape[1] / float(resized.shape[1])
@@ -190,14 +195,10 @@ class Exploration(smach.State):
 
         found2 = None
         for scale in space:
-            print scale
             
             resized = imutils.resize(currImage, width = int(currImage.shape[1] * scale))
 		    #r2 = currImage.shape[1] / float(resized.shape[1])
             r2 = 0
-
-            print resized.shape
-
             if resized.shape[0] < self.tH2 or resized.shape[1] < self.tW2:
 			    break
 
@@ -209,14 +210,11 @@ class Exploration(smach.State):
 			    found2 = (maxVal2, maxLoc2, r2)
 
 
-        print maxVal1
-        print maxVal2
+        print "Webcam", maxVal1,maxVal2
         
-        if(maxVal1 > 0.1 or maxVal2 > 0.1):
-            return True
-        else:
-            return False
-            
+        if(maxVal1 > 0.06 or maxVal2 > 0.06):
+            print('changed to true')
+            self.found = True
         
 class Found(smach.State):
     def __init__(self):
