@@ -68,6 +68,28 @@ class Exploration(smach.State):
             [(0.03, 2.05, 0.0), (0.0, 0.0, .7, 0.7)]
         ]
         self.waycounter = 0
+        self.image = None
+        self.bridge = cv_bridge.CvBridge()
+
+        image1 = cv2.imread('marker4.png')
+        image2 = cv2.imread('UAEmblem.png')
+
+        gray1 = cv2.cvtColor(image1, cv2.COLOR_BGR2GRAY)
+        gray2 = cv2.cvtColor(image2, cv2.COLOR_BGR2GRAY)
+
+        gray1 = imutils.resize(gray1, width = int((gray1.shape[1]* 0.5)))
+        gray2 = imutils.resize(gray2, width = int((gray2.shape[1] * 0.1)))
+
+        self.template1 = cv2.Canny(gray1, 100, 200)
+        (self.tH1, self.tW1) = self.template1.shape[:2]
+
+        self.template2 = cv2.Canny(gray2, 100, 200)
+        (self.tH2, self.tW2) = self.template2.shape[:2]
+
+    def im_callback(self, msg):
+        self.image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+        self.image = cv2.cvtColor(self.image,cv2.COLOR_BGR2GRAY)
+        self.found = self.matchtemplate()
         #self.cam_info_sub = rospy.Subscriber('/cv_camera/camera_info', CameraInfo, self.info_cb)
 
     def findClosestWaypoint(self):
@@ -99,7 +121,7 @@ class Exploration(smach.State):
         # 0 = hasn't been to a waypoint
         #if waypoint = 0, find closest point
         #else find closest point not including waypoint you've already been to 
-        self.img_sub = rospy.Subscriber('/cv_camera/image_raw', Image, self.img_cb)
+        self.img_sub = rospy.Subscriber('/usb_cam/image_raw', Image, self.im_callback)
         if self.waycounter == 0:
             self.waycounter == 1
             pose = self.waypoints[0]
@@ -126,13 +148,6 @@ class Exploration(smach.State):
         #elseif lost , return localizationtion
         return 'Localization'
         #else, change waypoint counter, and return exploration
-    
-    def img_cb(self,msg):
-        found = self.matchtemplate(msg)
-        os.system("rostopic pub /move_base/cancel actionlib_msgs/GoalID -- {}")
-        if found == True:
-            return 'Found'
-
 
     def goal_pose(self,pose):
         goal_pose = MoveBaseGoal()
@@ -147,7 +162,7 @@ class Exploration(smach.State):
         return goal_pose
 
         
-    def matchtemplate(self,image):
+    def matchtemplate(self):
         
         while(self.image == None):
             continue
@@ -198,10 +213,11 @@ class Exploration(smach.State):
         print maxVal1
         print maxVal2
         
-        if(found1 is None or maxVal1 < maxVal2):
-            return 2
+        if(maxVal1 > 0.1 or maxVal2 > 0.1):
+            return True
         else:
-            return 1
+            return False
+            
         
 class Found(smach.State):
     def __init__(self):
