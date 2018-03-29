@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import actionlib
+import os
 import roslib
 import rospy
 import smach
@@ -117,6 +118,7 @@ class Exploration(smach.State):
             if(self.lostPosition):
                 return "Localization"
 
+        os.system("rostopic pub /move_base/cancel actionlib_msgs/GoalID -- {}")
         return "Found"
 
         #if matchtemplate worked, stop and change state to found
