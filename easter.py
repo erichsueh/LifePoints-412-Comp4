@@ -149,54 +149,60 @@ class Exploration(smach.State):
 
         
     def matchtemplate(self,image):
-        '''
-        ap = argparse.ArgumentParser()
-        ap.add_argument("-t", "--template", required=True, help="Path to template image")
-        ap.add_argument("-i", "--images", required=True,
-	help="Path to images where template will be matched")
-        ap.add_argument("-v", "--visualize",
-	help="Flag indicating whether or not to visualize each iteration")
-        args = vars(ap.parse_args())
-        '''
-        #not constantly resizing the image here might help
-        # load the image image, convert it to grayscale, and detect edges
-        template = cv2.imread(image)
-        template = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
-        template = cv2.Canny(template, 50, 200)
-        (tH, tW) = template.shape[:2]
-        cv2.imshow("Template", template)
-        # loop over the images to find the template in
-        for imagePath in glob.glob(args["images"] + "/*.jpg"):
-            # load the image, convert it to grayscale, and initialize the
-            # bookkeeping variable to keep track of the matched region
-            image = cv2.imread(imagePath)
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            found = None
-            # loop over the scales of the image
-            for scale in np.linspace(0.2, 1.0, 20)[::-1]:
-                # resize the image according to the scale, and keep track
-                # of the ratio of the resizing
-                resized = imutils.resize(gray, width = int(gray.shape[1] * scale))
-                r = gray.shape[1] / float(resized.shape[1])
-                # if the resized image is smaller than the template, then break
-                # from the loop
-                if resized.shape[0] < tH or resized.shape[1] < tW:
-                    break
-                # detect edges in the resized, grayscale image and apply template
-                # matching to find the template in the image
-                edged = cv2.Canny(resized, 50, 200)
-                result = cv2.matchTemplate(edged, template, cv2.TM_CCOEFF)
-                (_, maxVal, _, maxLoc) = cv2.minMaxLoc(result)
-                #change if necessary
-                if maxVal >= .10:
-                    # check to see if the iteration should be visualized
-                    # draw a bounding box around the detected region
-                    clone = np.dstack([edged, edged, edged])
-                    cv2.rectangle(clone, (maxLoc[0], maxLoc[1]),(maxLoc[0] + tW, maxLoc[1] + tH), (0, 0, 255), 2)
-                    cv2.imshow("Visualize", clone)
-                    cv2.waitKey(0)
-                    return (True)
-        return(False)
+        
+        while(self.image == None):
+            continue
+        print "have image"
+        currImage = self.image
+        space = np.linspace(1,0.05, 30)
+        
+        found1 = None
+        for scale in space:
+            print scale
+            
+            resized = imutils.resize(currImage, width = int((currImage.shape[1]) * scale))
+		    #r1 = currImage.shape[1] / float(resized.shape[1])
+            r1 = 0
+
+            if resized.shape[0] < self.tH1 or resized.shape[1] < self.tW1:
+			    break
+
+            edged = cv2.Canny(resized, 100, 200)
+            result1 = cv2.matchTemplate(edged, self.template1, cv2.TM_CCOEFF_NORMED)
+            (minVal1, maxVal1, _, maxLoc1) = cv2.minMaxLoc(result1)
+
+            if found1 is None or maxVal1 > found1[0]:
+			    found1 = (maxVal1, maxLoc1, r1)
+
+
+        found2 = None
+        for scale in space:
+            print scale
+            
+            resized = imutils.resize(currImage, width = int(currImage.shape[1] * scale))
+		    #r2 = currImage.shape[1] / float(resized.shape[1])
+            r2 = 0
+
+            print resized.shape
+
+            if resized.shape[0] < self.tH2 or resized.shape[1] < self.tW2:
+			    break
+
+            edged = cv2.Canny(resized, 50, 200)
+            result2 = cv2.matchTemplate(edged, self.template2, cv2.TM_CCOEFF_NORMED)
+            (minVal2, maxVal2, _, maxLoc2) = cv2.minMaxLoc(result2)
+
+            if found2 is None or maxVal2 > found2[0]:
+			    found2 = (maxVal2, maxLoc2, r2)
+
+
+        print maxVal1
+        print maxVal2
+        
+        if(found1 is None or maxVal1 < maxVal2):
+            return 2
+        else:
+            return 1
         
 class Found(smach.State):
     def __init__(self):
@@ -366,10 +372,10 @@ class Sound(smach.State):
 
         if(marker == 1):
             print "marker 1"
-            #self.soundhandle.playWave("firstsound")
+            self.soundhandle.playWave("sound1.ogg")
         else:
             print "marker 2"
-            #self.soundhandle.playWave("secondsound")
+            self.soundhandle.playWave("sound2.ogg")
 
         self.returnToPath()
 
