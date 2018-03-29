@@ -138,8 +138,8 @@ class Exploration(smach.State):
         while(not self.found):
             if(self.closeToWaypoint(goal)):
                 return "Exploration"
-            if(self.lostPosition):
-                return "Localization"
+            #if(self.lostPosition):
+            #    return "Localization"
 
         os.system("rostopic pub /move_base/cancel actionlib_msgs/GoalID -- {}")
         return "Found"
